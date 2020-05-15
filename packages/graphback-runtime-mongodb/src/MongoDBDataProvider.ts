@@ -1,7 +1,8 @@
 import { GraphQLObjectType } from 'graphql';
 import { ObjectId, Db, Cursor } from "mongodb"
-import { ModelTableMap, buildModelTableMap, getDatabaseArguments } from '@graphback/core';
+import { ModelTableMap, buildModelTableMap, getDatabaseArguments, parseRelationshipAnnotation } from '@graphback/core';
 import { GraphbackDataProvider, GraphbackPage, NoDataError, GraphbackOrderBy } from '@graphback/runtime';
+import { parseAnnotations } from "graphql-metadata";
 import { buildQuery } from './queryBuilder'
 
 interface SortOrder {
@@ -20,6 +21,33 @@ export class MongoDBDataProvider<Type = any, GraphbackContext = any> implements 
     this.db = db;
     this.tableMap = buildModelTableMap(baseType);
     this.collectionName = this.tableMap.tableName;
+    Object.keys(baseType.getFields()).forEach(k => {
+      const relationshipData = parseRelationshipAnnotation(baseType.getFields()[k].description)
+      if (relationshipData?.kind && ['manyToOne', 'manyToMany'].includes(relationshipData.kind)) {
+        this.db.collection(this.collectionName).createIndex({
+          [relationshipData.key]: 1
+        }, (e, r) => {
+          if (e) {
+            console.error(e);
+          } else {
+            console.log(JSON.stringify(r,null,4))
+          }
+        });
+      }
+
+      const otherAnnotations = parseAnnotations('db', baseType.getFields()[k].description) as any;
+      if (otherAnnotations?.index) {
+        this.db.collection(this.collectionName).createIndex({
+          [baseType.getFields()[k].name]: 1
+        }, (e, r) => {
+          if (e) {
+            console.error(e);
+          } else {
+            console.log(JSON.stringify(r,null,4))
+          }
+        });
+      }
+    })
   }
 
   public async create(data: any): Promise<Type> {
