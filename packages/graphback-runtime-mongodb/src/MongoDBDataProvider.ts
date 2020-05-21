@@ -1,5 +1,5 @@
 import { GraphQLObjectType } from 'graphql';
-import { ObjectId, Db, Cursor } from "mongodb"
+import { ObjectId, Db, Cursor, MongoError } from "mongodb"
 import { ModelTableMap, buildModelTableMap, getDatabaseArguments, parseRelationshipAnnotation } from '@graphback/core';
 import { GraphbackDataProvider, GraphbackPage, NoDataError, GraphbackOrderBy } from '@graphback/runtime';
 import { parseAnnotations } from "graphql-metadata";
@@ -21,16 +21,16 @@ export class MongoDBDataProvider<Type = any, GraphbackContext = any> implements 
     this.db = db;
     this.tableMap = buildModelTableMap(baseType);
     this.collectionName = this.tableMap.tableName;
-    Object.keys(baseType.getFields()).forEach(k => {
+    Object.keys(baseType.getFields()).forEach((k: string) => {
       const relationshipData = parseRelationshipAnnotation(baseType.getFields()[k].description)
       if (relationshipData?.kind && ['manyToOne', 'manyToMany'].includes(relationshipData.kind)) {
         this.db.collection(this.collectionName).createIndex({
           [relationshipData.key]: 1
-        }, (e, r) => {
-          if (e) {
-            console.error(e);
+        }, (err: MongoError, res: any) => {
+          if (err) {
+            console.error(err);
           } else {
-            console.log(JSON.stringify(r,null,4))
+            console.log(JSON.stringify(res,undefined,4))
           }
         });
       }
@@ -39,11 +39,11 @@ export class MongoDBDataProvider<Type = any, GraphbackContext = any> implements 
       if (otherAnnotations?.index) {
         this.db.collection(this.collectionName).createIndex({
           [baseType.getFields()[k].name]: 1
-        }, (e, r) => {
-          if (e) {
-            console.error(e);
+        }, (err: MongoError, res: any) => {
+          if (err) {
+            console.error(err);
           } else {
-            console.log(JSON.stringify(r,null,4))
+            console.log(JSON.stringify(res,undefined,4))
           }
         });
       }
