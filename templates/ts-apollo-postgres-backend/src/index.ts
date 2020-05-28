@@ -1,21 +1,51 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('dotenv').config()
-import { ApolloServer } from "apollo-server-express"
+import { ApolloServer, PubSub } from "apollo-server-express"
 import cors from "cors"
 import express from "express"
 import http from "http"
-import { createRuntime } from './runtime'
-import { printSchemaWithDirectives } from 'graphback'
+import { buildServices as buildGraphbackServices, buildGraphback } from 'graphback'
+import { loadConfigSync } from 'graphql-config'
+import path from 'path'
+import { getConnectionDetails } from './db'
+import { PgKnexDBDataProvider } from '@graphback/runtime-knex'
+import { migrateDB, removeNonSafeOperationsFilter } from 'graphql-migrations'
 
 const app = express()
 
 app.use(cors())
 
-// connect to db
-const { schema, resolvers } = createRuntime();
+const projectConfig = loadConfigSync({
+  extensions: [
+    () => ({ name: 'graphback' })
+  ]
+}).getDefault()
+
+const graphbackConfig = projectConfig.extension('graphback');
+const model = projectConfig.loadSchemaSync(path.resolve(graphbackConfig.model));
+
+const pubSub = new PubSub();
+
+const dbConfig = getConnectionDetails()
+
+const services = buildGraphbackServices({
+  defaultDataProvider: new PgKnexDBDataProvider(dbConfig),
+  pubSub
+})
+
+const { typeDefs, resolvers } = buildGraphback({
+  model,
+  services
+})
+
+migrateDB(dbConfig, typeDefs, {
+  operationFilter: removeNonSafeOperationsFilter
+}).then(() => {
+  console.log("Migrated database");
+});
 
 const apolloServer = new ApolloServer({
-  typeDefs: printSchemaWithDirectives(schema),
+  typeDefs,
   resolvers
 })
 
