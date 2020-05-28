@@ -3,13 +3,13 @@ import { GraphbackDataProvider, GraphbackCRUDService, CRUDService, GraphbackPubS
 import { PubSub, PubSubEngine } from 'graphql-subscriptions';
 import { ModelDefinition } from '@graphback/core';
 
-export interface ResolverOptions {
+export interface ServiceBuilderConfig {
   defaultDataProvider: GraphbackDataProvider
   pubSub?: PubSubEngine
 }
 
-export function makeResolvers(options: ResolverOptions): ResolverBuilder {
-  const builder = new ResolverBuilder(options)
+export function buildGraphbackServices(options: ServiceBuilderConfig): GraphbackServiceBuilder {
+  const builder = new ServiceBuilder(options)
 
   return builder
 }
@@ -22,20 +22,19 @@ interface ModelDataSourceConfig {
 }
 
 // eslint-disable-next-line @typescript-eslint/tslint/config
-class ResolverBuilder implements IResolverBuilder {
-
-  private dsConfig: ModelDataSourceConfig;
-  private options: ResolverOptions;
-  public constructor(options: ResolverOptions) {
+class ServiceBuilder implements GraphbackServiceBuilder {
+  private datasourceConfig: ModelDataSourceConfig;
+  private options: ServiceBuilderConfig;
+  public constructor(builderConfig: ServiceBuilderConfig) {
     this.options = {
-      ...options,
+      ...builderConfig,
       pubSub: new PubSub()
     }
 
     const service = new CRUDService(this.options.pubSub)
     service.setDataProvider(this.options.defaultDataProvider)
 
-    this.dsConfig = {
+    this.datasourceConfig = {
       default: {
         service
       }
@@ -43,29 +42,29 @@ class ResolverBuilder implements IResolverBuilder {
   }
 
   public setDatasource(modelName: string, provider: GraphbackDataProvider): void {
-    const modelConfig = this.dsConfig[modelName];
+    const modelConfig = this.datasourceConfig[modelName];
     if (modelConfig) {
       modelConfig.service.setDataProvider(provider)
 
       return;
     }
 
-    this.dsConfig[modelName] = {
-      service: this.dsConfig.default.service
+    this.datasourceConfig[modelName] = {
+      service: this.datasourceConfig.default.service
     }
 
-    this.dsConfig[modelName].service.setDataProvider(provider)
+    this.datasourceConfig[modelName].service.setDataProvider(provider)
   }
 
   public setService(modelName: string, service: GraphbackCRUDService): void {
-    const modelConfig = this.dsConfig[modelName];
+    const modelConfig = this.datasourceConfig[modelName];
     if (modelConfig) {
       modelConfig.service = service
 
       return;
     }
 
-    this.dsConfig[modelName] = {
+    this.datasourceConfig[modelName] = {
       service
     }
   }
@@ -74,13 +73,13 @@ class ResolverBuilder implements IResolverBuilder {
     const modelServiceConfig: { [modelName: string]: GraphbackCRUDService } = {}
 
     for (const model of models) {
-      const modelDsConfig = this.dsConfig[model.graphqlType.name];
-      const pubSubConfig = getModelPubSubConfig(model)
+      const modelDsConfig = this.datasourceConfig[model.graphqlType.name];
+      const pubSubConfig = this.getModelPubSubConfig(model)
 
       if (modelDsConfig) {
         modelServiceConfig[model.graphqlType.name] = modelDsConfig.service;
       } else {
-        modelServiceConfig[model.graphqlType.name] = this.dsConfig.default.service
+        modelServiceConfig[model.graphqlType.name] = this.datasourceConfig.default.service
       }
 
       modelServiceConfig[model.graphqlType.name].setModelConfig(model.graphqlType, pubSubConfig)
@@ -89,21 +88,21 @@ class ResolverBuilder implements IResolverBuilder {
 
     return modelServiceConfig
   }
+
+  private getModelPubSubConfig(model: ModelDefinition): GraphbackPubSubModel {
+    return {
+      name: model.graphqlType.name,
+      pubSub: {
+        publishCreate: model.crudOptions.subCreate,
+        publishUpdate: model.crudOptions.subDelete,
+        publishDelete: model.crudOptions.subUpdate
+      }
+    }
+  }
 }
 
-export interface IResolverBuilder {
+export interface GraphbackServiceBuilder {
   setDatasource(modelName: string, provider: GraphbackDataProvider): void;
   setService(modelName: string, service: GraphbackCRUDService): void;
   build(models: ModelDefinition[]): { [modelName: string]: GraphbackCRUDService }
-}
-
-function getModelPubSubConfig(model: ModelDefinition): GraphbackPubSubModel {
-  return {
-    name: model.graphqlType.name,
-    pubSub: {
-      publishCreate: model.crudOptions.subCreate,
-      publishUpdate: model.crudOptions.subDelete,
-      publishDelete: model.crudOptions.subUpdate
-    }
-  }
 }
