@@ -50,9 +50,9 @@ export class SchemaCRUDPlugin extends GraphbackPlugin {
   public constructor(pluginConfig?: SchemaCRUDPluginConfig) {
     super()
     this.pluginConfig = Object.assign({ format: 'graphql', outputFileName: 'schema' }, pluginConfig);
-    if (!pluginConfig.outputPath) {
-      throw new Error("schema plugin requires outputPath parameter")
-    }
+    // if (!pluginConfig.outputPath) {
+    //   throw new Error("schema plugin requires outputPath parameter")
+    // }
   }
 
   public transformSchema(metadata: GraphbackCoreMetadata): GraphQLSchema {

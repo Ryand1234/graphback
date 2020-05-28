@@ -1,5 +1,5 @@
-import { GraphbackRuntime } from 'graphback'
-import { createKnexPGCRUDRuntimeServices } from "@graphback/runtime-knex"
+import { GraphbackRuntime, makeResolvers, makeGraphback } from 'graphback'
+import { createKnexPGCRUDRuntimeServices, PgKnexDBDataProvider } from "@graphback/runtime-knex"
 import { migrateDB, MigrateOptions, removeNonSafeOperationsFilter } from 'graphql-migrations';
 import { PubSub } from 'graphql-subscriptions';
 import { connectDB, getConnectionDetails } from './db'
@@ -9,7 +9,6 @@ import path from 'path';
  * Method used to create runtime schema
  */
 export const createRuntime = () => {
-  const db = connectDB();
 
   const projectConfig = loadConfigSync({
     extensions: [
@@ -26,15 +25,23 @@ export const createRuntime = () => {
   };
 
   const pubSub = new PubSub();
-  const runtimeEngine = new GraphbackRuntime(model, graphbackConfig);
-  const models = runtimeEngine.getDataSourceModels();
-  const services = createKnexPGCRUDRuntimeServices(models, model, db, pubSub);
-  const runtime = runtimeEngine.buildRuntime(services);
 
-  migrateDB(getConnectionDetails(), runtime.schema, migrateOptions)
+  const dbConfig = getConnectionDetails()
+
+  const myResolvers = makeResolvers({
+    defaultDataProvider: new PgKnexDBDataProvider(dbConfig),
+    pubSub
+  });
+
+  const graphback = makeGraphback({
+    schema: model,
+    resolvers: myResolvers
+  })
+
+  migrateDB(dbConfig, graphback.schema, migrateOptions)
     .then((ops) => {
       console.log("Migrated database");
     });
 
-  return runtime;
+  return graphback;
 }

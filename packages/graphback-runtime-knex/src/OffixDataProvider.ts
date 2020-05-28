@@ -9,8 +9,8 @@ import { PgKnexDBDataProvider } from './PgKnexDBDataProvider';
  * Note: this provider is still experimental not fully functional
  */
 export class OffixDataProvider extends PgKnexDBDataProvider {
-    public constructor(baseType: GraphQLObjectType, db: any) {
-        super(baseType, db);
+    public constructor(db: any) {
+        super(db);
     }
 
     /**

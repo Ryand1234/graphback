@@ -1,3 +1,4 @@
+import { GraphQLObjectType } from 'graphql';
 import { GraphbackPage } from "../GraphbackPage"
 import { GraphbackOrderBy } from '../GraphbackOrderBy';
 
@@ -15,6 +16,7 @@ import { GraphbackOrderBy } from '../GraphbackOrderBy';
  */
 //tslint:disable-next-line: no-any
 export interface GraphbackDataProvider<Type = any, GraphbackContext = any> {
+  setBaseType(baseType: GraphQLObjectType): void
 
   /**
    * Implementation for object creation

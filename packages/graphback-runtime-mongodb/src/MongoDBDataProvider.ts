@@ -21,6 +21,10 @@ export class MongoDBDataProvider<Type = any, GraphbackContext = any> implements 
     this.tableMap = buildModelTableMap(baseType);
     this.collectionName = this.tableMap.tableName;
   }
+  
+  public setBaseType(baseType: GraphQLObjectType<any, any, { [key: string]: any; }>): void {
+    throw new Error("Method not implemented.");
+  }
 
   public async create(data: any): Promise<Type> {
     const { idField } = getDatabaseArguments(this.tableMap, data);

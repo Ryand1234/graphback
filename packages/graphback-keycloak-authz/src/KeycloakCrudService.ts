@@ -1,4 +1,4 @@
-import { 
+import {
   CRUDService,
   GraphbackDataProvider,
   GraphbackPubSub,
@@ -23,7 +23,7 @@ export type KeycloakCrudServiceOptions = {
 
 /**
  * This custom CRUD Service shows another potential way to add auth
- * 
+ *
  * This is actually quite nice and clean but it does not allow for field level auth.
  * It's still a possibility that we could go with though!
  */
@@ -32,7 +32,7 @@ export class KeycloakCrudService<T = any> extends CRUDService {
   private authConfig: CrudServiceAuthConfig;
 
   public constructor({ modelType, db, subscriptionConfig, authConfig }: KeycloakCrudServiceOptions) {
-    super(modelType, db, subscriptionConfig);
+    super(subscriptionConfig.pubSub);
     this.authConfig = authConfig || getEmptyServiceConfig();
   }
 
@@ -58,7 +58,7 @@ export class KeycloakCrudService<T = any> extends CRUDService {
     return super.update(data, context);
   }
 
-  public delete(data: T, context?: any): Promise<T> { 
+  public delete(data: T, context?: any): Promise<T> {
     if (this.authConfig.delete && this.authConfig.delete.roles && this.authConfig.delete.roles.length > 0) {
       const { roles } = this.authConfig.delete;
       if (!isAuthorizedByRole(roles, context)) {

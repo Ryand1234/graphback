@@ -4,8 +4,8 @@ import { ApolloServer } from "apollo-server-express"
 import cors from "cors"
 import express from "express"
 import http from "http"
-import { printSchema } from 'graphql'
 import { createRuntime } from './runtime'
+import { printSchemaWithDirectives } from 'graphback'
 
 const app = express()
 
@@ -15,7 +15,7 @@ app.use(cors())
 const { schema, resolvers } = createRuntime();
 
 const apolloServer = new ApolloServer({
-  typeDefs: printSchema(schema),
+  typeDefs: printSchemaWithDirectives(schema),
   resolvers
 })
 

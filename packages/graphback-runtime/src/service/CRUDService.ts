@@ -6,6 +6,7 @@ import { GraphbackDataProvider } from "../data/GraphbackDataProvider";
 import { defaultLogger, GraphbackMessageLogger } from '../utils/Logger';
 import { GraphbackPage } from "../GraphbackPage"
 import { GraphbackOrderBy } from '../GraphbackOrderBy';
+import { GraphbackPubSubModel } from '../GraphbackPubSubModel';
 import { GraphbackCRUDService, ResultList } from "./GraphbackCRUDService";
 import { GraphbackPubSub } from "./GraphbackPubSub"
 
@@ -23,12 +24,9 @@ export class CRUDService<T = any> implements GraphbackCRUDService<T>  {
   private publishConfig: GraphbackPubSub;
   private modelName: string;
 
-  public constructor(modelType: GraphQLObjectType, db: GraphbackDataProvider, subscriptionConfig: GraphbackPubSub, logger?: GraphbackMessageLogger) {
-    this.db = db;
-    this.pubSub = subscriptionConfig.pubSub;
+  public constructor(pubSub: PubSubEngine, logger?: GraphbackMessageLogger) {
+    this.pubSub = pubSub;
     this.logger = logger || defaultLogger;
-    this.publishConfig = subscriptionConfig;
-    this.modelName = modelType.name;
   }
 
   public async create(data: T, context?: any): Promise<T> {
@@ -147,6 +145,18 @@ export class CRUDService<T = any> implements GraphbackCRUDService<T>  {
     return context[keyName].load(id);
   }
 
+  public getDataProvider(): GraphbackDataProvider {
+    return this.db
+  }
+
+  public setDataProvider(db: GraphbackDataProvider) {
+    this.db = db;
+  }
+
+  public setModelConfig(modelType: GraphQLObjectType, subscriptionConfig?: GraphbackPubSubModel) {
+    this.modelName = modelType.name;
+    this.publishConfig = subscriptionConfig.pubSub;
+  }
 
   /**
    * Provides way to map runtime topics for subscriptions for specific types and object names

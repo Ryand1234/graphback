@@ -16,16 +16,17 @@ import { buildQuery } from './knexQueryMapper';
  */
 //tslint:disable-next-line: no-any
 export class KnexDBDataProvider<Type = any, GraphbackContext = any> implements GraphbackDataProvider<Type, GraphbackContext>{
-
   protected db: Knex;
   protected baseType: GraphQLObjectType;
   protected tableName: string;
   protected tableMap: ModelTableMap;
 
-  public constructor(baseType: GraphQLObjectType, db: Knex) {
-    this.db = db;
-    this.baseType = baseType;
-    //TODO build and use mapping here
+  public constructor(dbConfig: Knex.Config) {
+    this.db = Knex(dbConfig);
+  }
+
+  public setBaseType(baseType: GraphQLObjectType) {
+    this.baseType = baseType
     this.tableMap = buildModelTableMap(baseType);
     this.tableName = this.tableMap.tableName;
   }
